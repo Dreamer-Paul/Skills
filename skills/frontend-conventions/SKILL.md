@@ -1,86 +1,86 @@
 ---
 name: frontend-conventions
 description: >-
-  按统一约定创建和实现纯客户端 React 前端：Vite、React Router Data Mode、
-  Tailwind CSS 4 的 @theme inline 语义色、Base UI、包 cn、类型化 fetch、
-  kebab-case 与 Vitest。在新建前端、加页面/组件/接口/类型/测试，或提到前端、
-  React、Vite、React Router 时使用。文档要求 SSR、SEO 或 GEO 时改用 Framework Mode。
-  React 侧是否使用 TanStack Query 必须先问用户。Zustand 只用于全局状态或过深的透传。
-  在已有项目中只对照差异并报告；用户没明确要求修改时不改代码。
+  按统一约定实现 React 前端。新建项目用官方 create-react-router 脚手架
+  （pnpm create react-router@latest），不手写工程骨架。生成后按实际目录接入约定。
+  默认纯客户端；文档要求 SSR、SEO 或 GEO 时再开服务端渲染。已有 Data Mode 仓库保持
+  Data Mode。约定包含 Tailwind CSS 4 的 @theme inline 语义色、Base UI、包 cn、
+  类型化 fetch、kebab-case 与 Vitest。在新建前端、加页面/组件/接口/类型/测试，或提到
+  前端、React、Vite、React Router 时使用。React 侧是否使用 TanStack Query 必须先问用户。
+  Zustand 只用于全局状态或过深的透传。在已有项目中只对照差异并报告；用户没明确要求修改时不改代码。
 ---
 
 # 前端约定
 
-新建或扩展前端时先定路由模式，再按下面的技术栈、目录、风格、请求、类型和测试实现。产品文档里的页面、权限和文案按该文档做；本 skill 不规定具体业务。
+新建项目先跑官方脚手架，再在生成结果上补技术栈、目录、风格、请求、类型和测试。扩展已有项目时保持它现有的路由模式。产品文档里的页面、权限和文案按该文档做；本 skill 不规定具体业务。
 
 ## 已有项目
 
 用本约定对照当前实现，向用户说明差异。用户没有明确要求修改代码时，停在报告：不改文件，不顺手迁移，也不跑会改写代码的命令。下面的测试和浏览器验证只在用户要求实现或修改时执行。
 
-已有仓库保持现有路由模式：存在 `app/routes.ts`、`react-router.config.ts` 或 `@react-router/dev` 时继续 Framework Mode；存在 `createBrowserRouter` 时继续 Data Mode。
+已有仓库保持现有路由模式和 `ssr` 设置。存在 `app/routes.ts`、`react-router.config.ts` 或 `@react-router/dev` 时继续 Framework Mode。存在 `createBrowserRouter` 时继续 Data Mode，沿用现有 `src/` 入口，不改成脚手架，也不重写 `main.tsx` 和 `router.tsx`。
+
+包管理器按本约定用 pnpm。用户只要求对照差异时，把非 pnpm 写进报告，不改 lockfile。用户要求实现或修改时，改用 pnpm：生成 `pnpm-lock.yaml`，去掉其他 lockfile，之后的安装和脚本都走 pnpm。
+
+## 新建项目
+
+用官方默认模板，包管理器只用 pnpm。不手写工程骨架，也不要从仓库抄模板文件。
+
+```bash
+pnpm create react-router@latest <dir> -- --yes --package-manager pnpm
+```
+
+`<dir>` 必填。`--yes` 使用默认模板并跳过提问。`--package-manager pnpm` 让脚手架用 pnpm 安装。不选带数据库、自定义服务器或 unstable 的模板，除非用户明确要求。
+
+单体仓库在空的前端包目录里跑同一条命令。目录里已有文件时先问用户，同意后再加 `--overwrite`。
+
+生成之后看实际目录，再接下文的分层、样式、请求和测试。入口、路由和配置保持脚手架的写法，缺的再补。
 
 ## 路由模式
 
-默认 **Data Mode**：React + Vite + React Router，纯客户端渲染。
+新建项目用脚手架的 Framework Mode。入口、路由和脚本以生成结果为准。
 
-仅当用户文档写明需要服务端渲染、服务端数据、SEO 或 GEO 时，改用 **Framework Mode**。纯管理后台、内部工具，以及文档没提服务端或收录需求的项目，用 Data Mode。
+纯客户端是默认：管理后台、内部工具，以及文档没提服务端或收录需求。文档写明服务端渲染、服务端数据、SEO 或 GEO 时再开服务端渲染。渲染开关改脚手架实际生成的配置。
 
-| | Data Mode（默认） | Framework Mode |
-| --- | --- | --- |
-| 渲染 | 浏览器渲染 | 可 SSR |
-| 入口 | `src/main.tsx` 挂 `RouterProvider` | `@react-router/dev` 接管入口 |
-| 路由 | `src/router.tsx` 的 route 对象 | `app/routes.ts` + route module |
-| 数据 | `loader` 在浏览器执行 | `loader` 可在服务端执行 |
-| 脚本 | `vite` / `tsc --noEmit` | `react-router dev`、`react-router build`、`react-router typegen && tsc` |
-
-Framework Mode 的插件、`routes.ts` 和 route module API 以当前安装的 React Router 文档为准。两种模式共用下文的目录分层、命名、样式、请求、类型和测试。
+已有 Data Mode 仓库继续用现有入口和路由。两种情况共用下文的目录分层、命名、样式、请求、类型和测试。
 
 ## 技术栈
 
 | 领域 | 选型 |
 | --- | --- |
-| UI | React 19 |
-| 路由 | React Router 8，按上一节选择模式 |
-| 构建 | Vite |
-| 语言 | TypeScript strict，`verbatimModuleSyntax` |
-| 样式 | Tailwind CSS 4；复杂样式用同目录 CSS Modules |
+| UI | React（跟脚手架） |
+| 路由 | React Router（跟脚手架）。新建用 Framework Mode；已有 Data Mode 仓库保持 Data Mode |
+| 构建 | Vite（跟脚手架） |
+| 语言 | TypeScript strict，`verbatimModuleSyntax`。脚手架已有就沿用 |
+| 样式 | Tailwind CSS 4；复杂样式用同目录 CSS Modules。脚手架已接入就沿用 |
 | 交互原语 | Base UI（`@base-ui/react`）：Dialog、Menu、Select、Popover、Tabs 等无样式组件，外观用 Tailwind 或同目录 CSS Module |
 | 图标 | `lucide-react` |
 | 类名 | `cn`（包名 `cn`）。组件里 `import { cn } from "cn"` |
 | 请求 | 自研 `fetch` 封装。是否再用 TanStack Query 由用户选择 |
 | 客户端状态 | 局部状态留在组件。Zustand 只用于全局状态，或透传层级已经过多的状态 |
+| 包管理器 | pnpm。安装与脚本都用 `pnpm add`、`pnpm add -D`、`pnpm dev`、`pnpm test`、`pnpm typecheck` |
 | 测试 | Vitest + Testing Library + jsdom |
 
-路径别名 `~/*`：Data Mode 指向 `./src/*`，Framework Mode 指向 `./app/*`。Vite 与 Vitest 都打开 `resolve.tsconfigPaths`。
-
-独立新项目用 Vite 的 `react-ts` 模板，再装上表内依赖。单体仓库把前端放进已有的前端包，目录规则不变。
+路径别名沿用脚手架。已有 Data Mode 项目的 `~/*` 指向 `./src/*`。Vite 与 Vitest 都打开 `resolve.tsconfigPaths`，没有再加。
 
 ## 目录
 
-Data Mode：
+业务代码放进脚手架的源码目录，按实际路径接入，不重排入口和路由。
 
 ```text
-src/
-├── main.tsx
-├── root.tsx
-├── router.tsx
-├── app.css                  # Tailwind 入口、基底色、@theme inline
-├── routes/                  # 页面组件 + loader
-├── components/
-│   ├── ui/
-│   ├── biz/<domain>/
-│   └── shared/
-├── hooks/
-├── stores/                  # 只有全局状态或过深透传才建 store
-├── lib/
-│   ├── api/                 # api-client.ts + 按资源拆分的具名函数
-│   └── utils/
-└── types/
+components/
+├── ui/
+├── biz/<domain>/
+└── shared/
+hooks/
+stores/                  # 只有全局状态或过深透传才建
+lib/
+├── api/                 # api-client.ts + 按资源拆分的具名函数
+└── utils/
+types/
 ```
 
-不设 `lib/classname.ts`。类名直接使用 `cn`。
-
-Framework Mode 把 `src/` 换成 `app/`，增加 `routes.ts` 和 `react-router.config.ts`（`ssr: true`）。路由文件名遵循 React Router：`home.tsx`、`items.$id.tsx`。Data Mode 的路由文件用 kebab-case，例如 `item-detail.tsx`。
+不设 `lib/classname.ts`。类名直接使用 `cn`。路由文件名跟脚手架和当前 React Router 约定。已有 Data Mode 的路由文件用 kebab-case，例如 `item-detail.tsx`。
 
 | 目录 | 可以依赖 |
 | --- | --- |
@@ -122,7 +122,7 @@ import { MessageBubble } from "~/components/biz/conversation/reader/message-bubb
 
 1. 布局、间距、颜色、排版和简单状态用 Tailwind。
 2. 复杂选择器、多步动画、伪元素和第三方结构，用同目录 `*.module.css`，以 `styles.xxx` 引用。
-3. 设计 token 只放在 `app.css`。
+3. 设计 token 只放在脚手架的全局样式入口。
 4. 颜色使用主题工具类：`border-subtle`、`bg-page`、`text-ink`。`[…]` 只用于非主题值，如 `rounded-[4px]`。
 5. Base UI 的外观用 data-attribute + Tailwind，或包进 `ui/*` 再用 Module 限定作用域。
 6. 布局断点写 Tailwind 响应式前缀或 Module 里的 `@media`。`matchMedia` 只用于主题等非布局行为。
@@ -261,7 +261,7 @@ export function updateConversation(
 }
 ```
 
-Data Mode 的 base URL 用 `/api`，由 Vite 代理到后端。Framework Mode 的 loader 可能跑在服务端：`window` 不存在时改用环境变量里的绝对 API 地址。
+浏览器里发的请求 base URL 用 `/api`，由 Vite 代理到后端。loader 跑在服务端、`window` 不存在时，改用环境变量里的绝对 API 地址。
 
 ## Types
 
@@ -295,4 +295,4 @@ export type Paginated<T> = {
 
 接口失败的测试要断言调用方仍保留用户输入。
 
-用户要求实现或修改时，完成后运行 `npm test` 和 `npm run typecheck`。改了 UI、布局、路由或展示数据时，在浏览器里走通主路径、空状态和错误状态；断点有变化时同时看桌面宽度和窄屏。相关路由若读取同一状态，一并核对。主题改动要同时看浅色和暗色。
+用户要求实现或修改时，完成后运行 `pnpm test` 和 `pnpm typecheck`。`typecheck` 用脚手架已有脚本；没有该脚本时用 `pnpm exec tsc --noEmit`。改了 UI、布局、路由或展示数据时，在浏览器里走通主路径、空状态和错误状态；断点有变化时同时看桌面宽度和窄屏。相关路由若读取同一状态，一并核对。主题改动要同时看浅色和暗色。
